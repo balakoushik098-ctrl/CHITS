@@ -1,0 +1,16 @@
+{
+  "name": "CHITS GAME",
+  "short_name": "CHITS",
+  "description": "Play CHITS with friends - Filter through notifications as and when you need!",
+  "start_url": "/CHITS/",
+  "display": "standalone",
+  "background_color": "#6c5ce7",
+  "theme_color": "#6c5ce7",
+  "icons": [
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/5968/5968756.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
