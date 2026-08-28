@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chits - Police vs Thief</title>
+<style>
+body{font-family:sans-serif; background:#E8F5E9; text-align:center; padding:10px}
+table{margin:12px auto; border-collapse:collapse; width:95%; max-width:500px}
+th,td{border:1px solid #333; padding:8px; background:white} th{background:#4CAF50;color:white}
+button{padding:12px 20px; margin:6px; border:none; border-radius:10px; background:#4CAF50; color:white; font-size:16px}
+.chit{width:110px; height:140px; background:linear-gradient(135deg,#fff,#FFECB3); border:3px solid #333; display:inline-flex; flex-direction:column; align-items:center; justify-content:center; margin:10px; font-weight:bold; cursor:pointer; border-radius:12px; box-shadow:2px 2px 8px rgba(0,0,0,.2)}
+.chit.green{background:#4CAF50; color:white; border-color:#2E7D32}
+.chit.red{background:#F44336; color:white; border-color:#B71C1C}
+.chit.revealed{background:white}
+.secret{font-size:22px}
+</style>
+</head>
+<body>
+<h2>🃏 Police Thief Chits 🃏</h2>
+<div id="app"></div>
+<script>
+const BASE = {Raja:1000,Rani:900,Doctor:700,Mantri:600,Police:500,Thief:0};
+let names=[], total={}, roles=[], assign=[], playerCount=0, policeIdx=-1, thiefIdx=-1, gameOver=false;
+
+function init(){
+ document.getElementById("app").innerHTML=`<h3>Entha mandi?</h3>
+ <button onclick="ask(4)">4 Members</button>
+ <button onclick="ask(5)">5 Members</button>
+ <button onclick="ask(6)">6 Members - Doctor</button>`;
+}
+function ask(n){ playerCount=n;
+ let h=`<h3>${n} Perlu Rayandi</h3>`;
+ for(let i=0;i<n;i++) h+=`<input id="p${i}" placeholder="Player ${i+1}" style="padding:10px;margin:5px;width:200px"><br>`;
+ h+=`<br><button onclick="save()">Divide Chits</button>`;
+ document.getElementById("app").innerHTML=h;
+}
+function save(){
+ names=[]; total={};
+ for(let i=0;i<playerCount;i++){ let v=document.getElementById(`p${i}`).value.trim()||`Player ${i+1}`; names.push(v); if(!total[v]) total[v]=0; }
+ if(playerCount==4) roles=["Raja","Rani","Police","Thief"];
+ if(playerCount==5) roles=["Raja","Rani","Police","Thief","Mantri"];
+ if(playerCount==6) roles=["Raja","Rani","Thief","Police","Mantri","Doctor"];
+ startRound();
+}
+function startRound(){
+ assign=[...roles].sort(()=>Math.random()-0.5);
+ policeIdx=assign.indexOf("Police"); thiefIdx=assign.indexOf("Thief"); gameOver=false;
+ renderDivide();
+}
+function renderDivide(){
+ let html=`<h3>Chits Divide Ayayi! (Uno laga)</h3><p>Evariki em vachindo evariki telidu</p><div>`;
+ for(let i=0;i<playerCount;i++){
+  html+=`<div class="chit" id="c${i}"><span class="secret">🂠</span><small>${names[i]}</small><br><small>CHIT ${i+1}</small></div>`;
+ }
+ html+=`</div><br><button onclick="showPolice()" style="background:#FF9800">Show Who is POLICE 👮</button>`+table();
+ document.getElementById("app").innerHTML=html;
+}
+function showPolice(){
+ let html=`<h2>Police is <span style="color:green">${names[policeIdx]}</span> 👮</h2>
+ <p>${names[policeIdx]} - Thief evaro chit meedha click chey!</p><div>`;
+ for(let i=0;i<playerCount;i++){
+   let isPolice = i==policeIdx;
+   html+=`<div class="chit ${isPolice?'revealed':''}" id="c${i}" onclick="${isPolice?'':`guess(${i})`}">
+   ${isPolice?`👮 POLICE<br>${names[i]}`:`<span class=secret>?</span><br>${names[i]}`}</div>`;
+ }
+ html+=`</div><p style="color:#666">Police thana chit thappa migilina chits lo okati nokali</p>`+table();
+ document.getElementById("app").innerHTML=html;
+}
+function guess(idx){
+ if(gameOver) return; gameOver=true;
+ let correct = idx==thiefIdx;
+ // color
+ for(let i=0;i<playerCount;i++){
+  let el=document.getElementById(`c${i}`);
+  if(i==idx){
+   el.classList.add(correct?'green':'red');
+   el.innerHTML = correct? `✅ THIEF<br>${names[i]}<br>GREEN` : `❌ NOT THIEF<br>${names[i]}<br>${assign[i]}<br>RED`;
+  }
+  if(i==thiefIdx &&!correct){
+   // show real thief also
+   setTimeout(()=>{ let e=document.getElementById(`c${thiefIdx}`); e.classList.add('green'); e.innerHTML=`✅ REAL THIEF<br>${names[thiefIdx]}`; },600);
+  }
+ }
+ // scoring
+ let round={};
+ names.forEach((nm,i)=>{
+  let r=assign[i];
+  if(r=="Police" || r=="Thief") round[nm]=0;
+  else round[nm]=BASE[r];
+ });
+ if(correct){ round[names[policeIdx]]=500; round[names[thiefIdx]]=0; }
+ else { round[names[policeIdx]]=0; round[names[thiefIdx]]=500; }
+ for(let nm in round) total[nm]+=round[nm];
+
+ setTimeout(()=>{
+  let html=`<h2>${correct?'🟢 CORRECT - GREEN':'🔴 WRONG - RED'}</h2>`+resultTable(round)+`
+  <button onclick="startRound()">Next Round - Chits Malla Divide</button><br>
+  <button onclick="final()" style="background:#2196F3">Completed - Final Ranking</button>`;
+  document.getElementById("app").innerHTML=html;
+ }, correct?300:1000);
+}
+function resultTable(round){
+ let h=`<table><tr><th>Player</th><th>Role</th><th>Round</th><th>Total</th></tr>`;
+ names.forEach((nm,i)=>{ h+=`<tr><td>${nm}</td><td>${assign[i]}</td><td>${round[nm]}</td><td><b>${total[nm]}</b></td></tr>`; });
+ return h+`</table>`;
+}
+function table(){
+ let h=`<table><tr><th>Player</th><th>Total Points</th></tr>`;
+ names.forEach(n=> h+=`<tr><td>${n}</td><td>${total[n]||0}</td></tr>`);
+ return h+`</table>`;
+}
+function final(){
+ let sorted=Object.entries(total).sort((a,b)=>b[1]-a[1]);
+ let h=`<h2>🏆 Final Rank 🏆</h2><table><tr><th>Rank</th><th>Name</th><th>Points</th></tr>`;
+ sorted.forEach(([nm,pt],i)=>{ let med=i==0?'🥇 1st':i==1?'🥈 2nd':i==2?'🥉 3rd':`${i+1}th`; h+=`<tr><td>${med}</td><td>${nm}</td><td><b>${pt}</b></td></tr>`; });
+ h+=`</table><br><button onclick="location.reload()">Kotha Game</button>`;
+ document.getElementById("app").innerHTML=h;
+}
+init();
+</script>
+</body>
+</html>
